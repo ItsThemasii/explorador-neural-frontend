@@ -1,0 +1,548 @@
+/* ==========================================================================
+   Explorador Neural · Inmersivo
+   ========================================================================== */
+
+:root {
+  --primary: #6366f1;
+  --accent: #ec4899;
+  --bg: #000000;
+  --text: #e8eaff;
+  --text-dim: rgba(232, 234, 255, 0.6);
+  --glass-bg: rgba(10, 10, 28, 0.55);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-stroke: rgba(255, 255, 255, 0.14);
+  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.4);
+  --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.25);
+  --radius-lg: 16px;
+  --radius-md: 12px;
+  --radius-sm: 8px;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  cursor: default;
+}
+
+body {
+  position: relative;
+}
+
+/* ==========================================================================
+   Escena 3D
+   ========================================================================== */
+#scene-container {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+}
+
+#scene-container canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* ==========================================================================
+   Glass utility
+   ========================================================================== */
+.glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(18px) saturate(140%);
+  -webkit-backdrop-filter: blur(18px) saturate(140%);
+  box-shadow: var(--shadow-soft);
+}
+
+/* ==========================================================================
+   Search bar flotante (top center)
+   ========================================================================== */
+#search-bar {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 10px;
+  padding: 14px 18px;
+  border-radius: var(--radius-lg);
+  min-width: 460px;
+  max-width: 92vw;
+  animation: fadeDown 0.6s ease-out;
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  font-weight: 600;
+}
+
+.brand-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--primary);
+  box-shadow: 0 0 10px var(--primary);
+  animation: pulse 2.4s infinite ease-in-out;
+}
+
+.brand-text {
+  font-weight: 600;
+}
+
+#search-form {
+  display: flex;
+  gap: 8px;
+}
+
+#search-input {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-stroke);
+  background: rgba(0, 0, 0, 0.35);
+  color: var(--text);
+  font-size: 15px;
+  font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+#search-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+}
+
+#search-input::placeholder {
+  color: rgba(232, 234, 255, 0.35);
+}
+
+#search-button {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: none;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  color: white;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 18px rgba(99, 102, 241, 0.4);
+}
+
+#search-button:hover {
+  transform: scale(1.04);
+  box-shadow: 0 6px 22px rgba(99, 102, 241, 0.55);
+}
+
+#search-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Botón Cronológico — pill al lado del search */
+.chrono-button {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 14px;
+  height: 44px;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--glass-stroke);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease, transform 0.15s ease;
+  white-space: nowrap;
+}
+.chrono-button:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.18);
+  border-color: var(--primary);
+  transform: translateY(-1px);
+}
+.chrono-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.chrono-button svg { flex-shrink: 0; }
+
+.search-status {
+  font-size: 12px;
+  color: var(--text-dim);
+  min-height: 16px;
+  text-align: center;
+  transition: color 0.2s ease;
+}
+
+.search-status.loading {
+  color: var(--primary);
+}
+
+.search-status.error {
+  color: #ff6b6b;
+}
+
+.search-status.success {
+  color: #4ade80;
+}
+
+/* ==========================================================================
+   Tooltip
+   ========================================================================== */
+.tooltip {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 20;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm);
+  background: rgba(5, 5, 16, 0.92);
+  border: 1px solid var(--glass-stroke);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 500;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(12px, 12px);
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+  box-shadow: var(--shadow-soft);
+  max-width: 260px;
+  white-space: normal;
+}
+
+.tooltip.visible {
+  opacity: 1;
+}
+
+.tooltip-category {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--primary);
+  margin-bottom: 2px;
+}
+
+/* ==========================================================================
+   Side panel (right slide-in)
+   ========================================================================== */
+.side-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  height: 100vh;
+  width: 420px;
+  max-width: 92vw;
+  z-index: 15;
+  background: rgba(8, 8, 20, 0.92);
+  border-left: 1px solid var(--glass-stroke);
+  backdrop-filter: blur(22px);
+  -webkit-backdrop-filter: blur(22px);
+  transform: translateX(100%);
+  transition: transform 0.42s cubic-bezier(0.22, 1, 0.36, 1);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.side-panel.open {
+  transform: translateX(0);
+}
+
+.side-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  z-index: 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--glass-stroke);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.side-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: rotate(90deg);
+}
+
+.side-content {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--primary) transparent;
+}
+
+.side-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.side-content::-webkit-scrollbar-thumb {
+  background: var(--primary);
+  border-radius: 4px;
+}
+
+.side-image {
+  width: 100%;
+  height: 240px;
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  background-size: cover;
+  background-position: center;
+  position: relative;
+}
+
+.side-image.placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 64px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.7);
+  letter-spacing: -2px;
+}
+
+.side-image::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to bottom, transparent 50%, rgba(8, 8, 20, 0.95));
+  pointer-events: none;
+}
+
+.side-body {
+  padding: 18px 24px 32px;
+}
+
+.side-category {
+  display: inline-block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--primary);
+  padding: 4px 10px;
+  border-radius: 99px;
+  background: rgba(99, 102, 241, 0.12);
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  margin-bottom: 12px;
+}
+
+.side-title {
+  font-size: 24px;
+  font-weight: 700;
+  margin-bottom: 12px;
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+.side-description {
+  font-size: 14px;
+  line-height: 1.6;
+  color: rgba(232, 234, 255, 0.85);
+  margin-bottom: 18px;
+}
+
+.side-divider {
+  height: 1px;
+  background: var(--glass-stroke);
+  margin: 18px 0;
+}
+
+.side-subtitle {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--text-dim);
+  margin-bottom: 10px;
+  font-weight: 600;
+}
+
+.side-wiki-extract {
+  font-size: 13px;
+  line-height: 1.55;
+  color: rgba(232, 234, 255, 0.7);
+  margin-bottom: 14px;
+  font-style: italic;
+}
+
+.side-wiki-extract.empty {
+  font-style: normal;
+  color: var(--text-dim);
+  opacity: 0.6;
+}
+
+.side-wiki-link {
+  display: inline-block;
+  font-size: 13px;
+  color: var(--accent);
+  text-decoration: none;
+  font-weight: 500;
+  transition: opacity 0.2s ease;
+}
+
+.side-wiki-link:hover {
+  opacity: 0.7;
+}
+
+/* ── Navegación cronológica (footer fijo) ── */
+.side-nav {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 14px 18px;
+  border-top: 1px solid var(--glass-stroke);
+  background: rgba(0, 0, 0, 0.5);
+  backdrop-filter: blur(12px);
+}
+
+.side-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--glass-stroke);
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 500;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.16s ease, border-color 0.16s ease, transform 0.12s ease;
+}
+
+.side-nav-btn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary);
+}
+
+.side-nav-btn.primary {
+  background: linear-gradient(135deg, var(--primary), var(--accent));
+  border-color: transparent;
+  color: white;
+  box-shadow: 0 2px 12px rgba(99, 102, 241, 0.35);
+}
+
+.side-nav-btn.primary:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 16px rgba(99, 102, 241, 0.5);
+}
+
+.side-nav-btn:disabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.side-progress {
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+}
+
+/* ==========================================================================
+   Hint bar
+   ========================================================================== */
+.hint {
+  position: fixed;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 10;
+  display: flex;
+  gap: 18px;
+  padding: 10px 18px;
+  border-radius: 99px;
+  font-size: 11px;
+  color: var(--text-dim);
+  animation: fadeUp 0.8s 0.3s ease-out both;
+}
+
+.hint kbd {
+  font-family: inherit;
+  font-size: 10px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid var(--glass-stroke);
+  margin-right: 4px;
+  color: var(--text);
+}
+
+/* ==========================================================================
+   Animations
+   ========================================================================== */
+@keyframes fadeDown {
+  from { opacity: 0; transform: translate(-50%, -16px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translate(-50%, 16px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(1.25); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.spinner {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border: 2px solid rgba(99, 102, 241, 0.3);
+  border-top-color: var(--primary);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  vertical-align: middle;
+  margin-right: 6px;
+}
+
+/* ==========================================================================
+   Responsive
+   ========================================================================== */
+@media (max-width: 640px) {
+  #search-bar { min-width: unset; width: calc(100% - 32px); }
+  .hint { font-size: 10px; gap: 10px; padding: 8px 12px; flex-wrap: wrap; justify-content: center; }
+  .side-panel { width: 100vw; }
+}
